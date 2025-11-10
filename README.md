@@ -36,7 +36,7 @@ A comprehensive Discord bot for monitoring Pokemon card/product stock from New Z
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/pokemon-discord-stock-bot.git
+   git clone https://github.com/Jacoboellis/pokemon-discord-stock-bot.git
    cd pokemon-discord-stock-bot
    ```
 
