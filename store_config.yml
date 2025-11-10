@@ -1,0 +1,60 @@
+# Pokemon Store Configuration - New Zealand Focus
+# Only NZ stores are available in Discord bot commands
+
+nz_stores:
+  novagames_nz:
+    name: "Nova Games NZ"
+    base_url: "https://novagames.co.nz"
+    search_url: "https://novagames.co.nz/collections/pokemon"
+    example_product: "https://novagames.co.nz/collections/pokemon/products/mega-evolution-booster-pack"
+    example_sku: "mega-evolution-booster-pack"
+    notes: "Only shows in-stock items - perfect for monitoring!"
+    status: "✅ WORKING"
+    
+  ebgames_nz:
+    name: "EB Games NZ"
+    base_url: "https://www.ebgames.co.nz"
+    search_url: "https://www.ebgames.co.nz/search?q={query}"
+    example_product: "https://www.ebgames.co.nz/product/toys-and-collectibles/331696-pokemon-tcg-mega-heroes-mini-tins-assorted"
+    example_sku: "331696"
+    status: "⚠️ BLOCKED - HTTP 403"
+    
+  thewarehouse_nz:
+    name: "The Warehouse NZ"
+    base_url: "https://www.thewarehouse.co.nz"
+    search_url: "https://www.thewarehouse.co.nz/search?q={query}&lang=default&search-button="
+    example_product: "https://www.thewarehouse.co.nz/p/pokemon-2024-world-championships-deck-assorted/R2984751.html"
+    example_sku: "R2984751"
+    status: "🔄 READY TO TEST"
+    
+  jbhifi_nz:
+    name: "JB Hi-Fi NZ"
+    base_url: "https://www.jbhifi.co.nz"
+    search_url: "https://www.jbhifi.co.nz/search?query={query}"
+    example_search: "https://www.jbhifi.co.nz/search?query=pokemon%20tcg"
+    status: "🔄 READY TO TEST"
+    
+  kmart_nz:
+    name: "Kmart NZ"
+    base_url: "https://www.kmart.co.nz"
+    search_url: "https://www.kmart.co.nz/search/?searchTerm={query}"
+    example_search: "https://www.kmart.co.nz/search/?searchTerm=pokemon%20cards"
+    status: "⚠️ BLOCKED - HTTP 403"
+    
+  farmers_nz:
+    name: "Farmers NZ"
+    base_url: "https://www.farmers.co.nz"
+    search_url: "https://www.farmers.co.nz/search?SearchTerm={query}"
+    example_search: "https://www.farmers.co.nz/search?SearchTerm=pokemon%20tcg"
+    status: "🔄 READY TO TEST"
+
+# International stores are still available in code but removed from Discord bot choices
+# to focus on New Zealand market
+
+# To add a new store, just add it here like this:
+# new_store_name:
+#   name: "Display Name"
+#   base_url: "https://store.com"
+#   search_url: "https://store.com/search?q={query}"
+#   example_product: "full URL to a Pokemon product"
+#   example_sku: "product code/SKU"

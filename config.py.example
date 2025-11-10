@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""
+Pokemon Discord Stock Bot Configuration Template
+
+Copy this file to config.py and fill in your actual values.
+This template shows what configuration is needed.
+"""
+
+# Discord Bot Configuration
+discord_token = "YOUR_DISCORD_BOT_TOKEN_HERE"
+
+# Discord Channel IDs (right-click channel -> Copy ID with Developer Mode enabled)
+channels = {
+    'stock_alerts': 1234567890123456789,      # Channel for stock notifications
+    'upcoming_releases': 1436901030691602472,  # Channel for upcoming release notifications  
+    'bot_logs': 1234567890123456789,          # Channel for bot logs and daily reports
+    'community_sightings': 1234567890123456789 # Channel for community-reported sightings
+}
+
+# Discord Server Configuration
+guild_id = 1234567890123456789  # Your Discord server ID
+
+# Monitoring Configuration
+check_interval = 300  # How often to check products (in seconds)
+max_retries = 3       # Maximum retries for failed requests
+request_timeout = 30  # Request timeout in seconds
+
+# Database Configuration
+database_path = "data/pokemon_stock.db"
+
+# Logging Configuration
+log_level = "INFO"
+log_file = "logs/pokemon_bot.log"
+
+# User Agent for web scraping
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+# Rate limiting (to be respectful to stores)
+rate_limit_delay = 2  # Seconds between requests to same store
+max_concurrent_requests = 5
+
+# Notification settings
+enable_role_mentions = True
+notification_role_id = 1234567890123456789  # Role to mention for notifications
+
+# Feature flags
+enable_daily_reports = True
+enable_community_sightings = True
+enable_upcoming_releases = True
+enable_automatic_scheduling = True
+
+# Development settings
+debug_mode = False
+test_mode = False  # Set to True to disable actual Discord notifications during testing
