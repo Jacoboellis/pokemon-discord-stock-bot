@@ -179,6 +179,83 @@ class DatabaseManager:
             self.logger.error(f"Error getting stock changes: {e}")
             return []
     
+    async def upsert_product_from_scan(self, sku: str, store_name: str, product_name: str = None, 
+                                     product_url: str = None, price: float = None, stock_status: str = "In Stock") -> tuple[bool, bool]:
+        """
+        Insert or update a product from daily scan
+        Returns (success, is_new_product)
+        """
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                # Check if product already exists
+                async with db.execute('''
+                    SELECT id, product_name, last_price FROM monitored_products 
+                    WHERE sku = ? AND store_name = ?
+                ''', (sku, store_name)) as cursor:
+                    existing = await cursor.fetchone()
+                
+                if existing:
+                    # Product exists - update it
+                    product_id = existing[0]
+                    await db.execute('''
+                        UPDATE monitored_products 
+                        SET product_name = COALESCE(?, product_name),
+                            product_url = COALESCE(?, product_url),
+                            current_stock_status = ?,
+                            last_price = COALESCE(?, last_price),
+                            last_checked = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    ''', (product_name, product_url, stock_status, price, product_id))
+                    
+                    # Add to history if price changed or on daily scans
+                    await db.execute('''
+                        INSERT INTO stock_history (product_id, stock_status, price)
+                        VALUES (?, ?, ?)
+                    ''', (product_id, stock_status, price))
+                    
+                    await db.commit()
+                    self.logger.info(f"Updated existing product {sku} from {store_name}")
+                    return True, False  # Success, not new
+                else:
+                    # New product - insert it
+                    cursor = await db.execute('''
+                        INSERT INTO monitored_products 
+                        (sku, store_name, product_name, product_url, current_stock_status, last_price)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (sku, store_name, product_name, product_url, stock_status, price))
+                    
+                    product_id = cursor.lastrowid
+                    
+                    # Add to history
+                    await db.execute('''
+                        INSERT INTO stock_history (product_id, stock_status, price)
+                        VALUES (?, ?, ?)
+                    ''', (product_id, stock_status, price))
+                    
+                    await db.commit()
+                    self.logger.info(f"Added new product {sku} from {store_name}")
+                    return True, True  # Success, is new
+                    
+        except Exception as e:
+            self.logger.error(f"Error upserting product from scan: {e}")
+            return False, False
+    
+    async def get_products_by_store(self, store_name: str) -> List[Dict[str, Any]]:
+        """Get all products for a specific store"""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute('''
+                    SELECT * FROM monitored_products 
+                    WHERE store_name = ? AND is_active = 1
+                    ORDER BY last_checked DESC
+                ''', (store_name,)) as cursor:
+                    rows = await cursor.fetchall()
+                    return [dict(row) for row in rows]
+        except Exception as e:
+            self.logger.error(f"Error getting products by store: {e}")
+            return []
+    
     def close(self):
         """Close database connections"""
         # aiosqlite connections are closed automatically

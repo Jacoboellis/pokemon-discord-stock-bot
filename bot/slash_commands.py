@@ -533,6 +533,322 @@ class SlashCommands(commands.Cog):
         except Exception as e:
             self.logger.error(f"Error in schedule_daily command: {e}")
             await interaction.followup.send("❌ An error occurred while scheduling daily scans.")
+    
+    @app_commands.command(name="check_nova_games", description="Check current Pokemon stock at Nova Games NZ")
+    async def check_nova_games(self, interaction: discord.Interaction):
+        """Check Nova Games NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        try:
+            from monitors.generic_monitor import GenericStoreMonitor
+            
+            # Create mock config for the monitor
+            class MockConfig:
+                check_interval = 60
+                max_concurrent_checks = 5
+            
+            monitor = GenericStoreMonitor(MockConfig())
+            products = await monitor.get_nova_games_products()
+            
+            if not products:
+                embed = discord.Embed(
+                    title="🏪 Nova Games NZ",
+                    description="❌ No Pokemon products found or store is unavailable",
+                    color=0xe74c3c
+                )
+                await interaction.followup.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title="🏪 Nova Games NZ - Current Stock",
+                description=f"Found **{len(products)}** Pokemon products",
+                color=0x2ecc71,
+                url="https://novagames.co.nz/collections/pokemon"
+            )
+            
+            # Add products (limit to 10 for space)
+            for i, product in enumerate(products[:10]):
+                stock_status = "🟢 Available" if product.get('available', False) else "🔴 Out of Stock"
+                price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "TBA"
+                
+                embed.add_field(
+                    name=f"{i+1}. {product['name'][:50]}{'...' if len(product['name']) > 50 else ''}",
+                    value=f"{stock_status} • {price_text}\n[View Product]({product.get('url', 'https://novagames.co.nz')})",
+                    inline=False
+                )
+            
+            if len(products) > 10:
+                embed.add_field(
+                    name=f"+ {len(products) - 10} More Products",
+                    value=f"Visit [Nova Games Pokemon Collection](https://novagames.co.nz/collections/pokemon) to see all products",
+                    inline=False
+                )
+            
+            embed.set_footer(text="💡 Use /daily_scan for all stores • Data refreshed on each command")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            self.logger.error(f"Error in check_nova_games command: {e}")
+            embed = discord.Embed(
+                title="🏪 Nova Games NZ",
+                description="❌ Error checking store - may be temporarily unavailable",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed)
+    
+    @app_commands.command(name="check_card_merchant", description="Check current Pokemon stock at Card Merchant NZ")
+    async def check_card_merchant(self, interaction: discord.Interaction):
+        """Check Card Merchant NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        try:
+            from monitors.generic_monitor import GenericStoreMonitor
+            
+            # Create mock config for the monitor
+            class MockConfig:
+                check_interval = 60
+                max_concurrent_checks = 5
+            
+            monitor = GenericStoreMonitor(MockConfig())
+            products = await monitor.get_cardmerchant_products()
+            
+            if not products:
+                embed = discord.Embed(
+                    title="🏪 Card Merchant NZ",
+                    description="❌ No Pokemon products found or store is unavailable",
+                    color=0xe74c3c
+                )
+                await interaction.followup.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title="🏪 Card Merchant NZ - Current Stock",
+                description=f"Found **{len(products)}** Pokemon products",
+                color=0x2ecc71,
+                url="https://cardmerchant.co.nz/collections/pokemon-sealed"
+            )
+            
+            # Add products (limit to 10 for space)
+            for i, product in enumerate(products[:10]):
+                stock_status = "🟢 Available" if product.get('available', False) else "🔴 Out of Stock"
+                price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "Price TBA"
+                
+                embed.add_field(
+                    name=f"{i+1}. {product['name'][:50]}{'...' if len(product['name']) > 50 else ''}",
+                    value=f"{stock_status} • {price_text}\n[View Product]({product.get('url', 'https://cardmerchant.co.nz')})",
+                    inline=False
+                )
+            
+            if len(products) > 10:
+                embed.add_field(
+                    name=f"+ {len(products) - 10} More Products",
+                    value=f"Visit [Card Merchant Pokemon Collection](https://cardmerchant.co.nz/collections/pokemon-sealed) to see all products",
+                    inline=False
+                )
+            
+            embed.set_footer(text="💡 Use /daily_scan for all stores • Data refreshed on each command")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            self.logger.error(f"Error in check_card_merchant command: {e}")
+            embed = discord.Embed(
+                title="🏪 Card Merchant NZ",
+                description="❌ Error checking store - may be temporarily unavailable",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed)
+    
+    @app_commands.command(name="check_eb_games", description="Check EB Games NZ Pokemon TCG stock")
+    async def check_eb_games(self, interaction: discord.Interaction):
+        """Check EB Games NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        try:
+            from monitors.generic_monitor import GenericStoreMonitor
+            
+            # Create mock config for the monitor
+            class MockConfig:
+                check_interval = 60
+                max_concurrent_checks = 5
+            
+            monitor = GenericStoreMonitor(MockConfig())
+            products = await monitor.get_ebgames_products()
+            
+            if not products:
+                embed = discord.Embed(
+                    title="🏪 EB Games NZ",
+                    description="❌ No Pokemon TCG products found or store is temporarily unavailable",
+                    color=0xe74c3c
+                )
+                embed.add_field(
+                    name="🔧 Status", 
+                    value="May be temporarily down\nUsing Selenium browser automation",
+                    inline=True
+                )
+                embed.add_field(
+                    name="🌐 Manual Check",
+                    value="[Visit EB Games Pokemon](https://www.ebgames.co.nz/search?q=pokemon)",
+                    inline=True
+                )
+                await interaction.followup.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title="🏪 EB Games NZ - Pokemon TCG Stock",
+                description=f"Found **{len(products)}** Pokemon TCG products\n*Using Selenium to bypass bot detection*",
+                color=0x2ecc71,
+                url="https://www.ebgames.co.nz/search?q=pokemon"
+            )
+            
+            # Add products (limit to 10 for space)
+            for i, product in enumerate(products[:10]):
+                stock_status = "🟢 Available" if product.get('available', False) else "🔴 Out of Stock"
+                price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "Price TBA"
+                
+                embed.add_field(
+                    name=f"{i+1}. {product['name'][:50]}{'...' if len(product['name']) > 50 else ''}",
+                    value=f"{stock_status} • {price_text}\n[View Product]({product.get('url', 'https://www.ebgames.co.nz')})",
+                    inline=False
+                )
+            
+            if len(products) > 10:
+                embed.add_field(
+                    name=f"+ {len(products) - 10} More Products",
+                    value="Visit [EB Games Pokemon Search](https://www.ebgames.co.nz/search?q=pokemon) to see all products",
+                    inline=False
+                )
+            
+            embed.set_footer(text="💡 This uses browser automation to access EB Games • Data refreshed on each command")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            self.logger.error(f"Error in check_eb_games command: {e}")
+            embed = discord.Embed(
+                title="🏪 EB Games NZ",
+                description="❌ Error checking store - Selenium automation may have failed",
+                color=0xe74c3c
+            )
+            embed.add_field(
+                name="💡 Note",
+                value="This command uses browser automation which may occasionally fail",
+                inline=False
+            )
+            await interaction.followup.send(embed=embed)
+    
+    @app_commands.command(name="check_warehouse", description="Check The Warehouse NZ Pokemon section")
+    async def check_warehouse(self, interaction: discord.Interaction):
+        """Check The Warehouse NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        embed = discord.Embed(
+            title="🏪 The Warehouse NZ",
+            description="⚙️ **Pokemon Parsing Not Yet Implemented**\n\nWe can reach the store but haven't built Pokemon product detection yet.",
+            color=0xf39c12,
+            url="https://thewarehouse.co.nz"
+        )
+        
+        embed.add_field(
+            name="🔧 Status",
+            value="Store accessible\nProduct parsing pending",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🌐 Manual Check",
+            value="[Search Pokemon at The Warehouse](https://thewarehouse.co.nz/search?q=pokemon)",
+            inline=True
+        )
+        
+        embed.set_footer(text="💡 Use /report_sighting to manually report Warehouse finds")
+        
+        await interaction.followup.send(embed=embed)
+    
+    @app_commands.command(name="check_jb_hifi", description="Check JB Hi-Fi NZ Pokemon section")
+    async def check_jb_hifi(self, interaction: discord.Interaction):
+        """Check JB Hi-Fi NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        embed = discord.Embed(
+            title="🏪 JB Hi-Fi NZ",
+            description="⚙️ **Pokemon Parsing Not Yet Implemented**\n\nWe can reach the store but haven't built Pokemon product detection yet.",
+            color=0xf39c12,
+            url="https://jbhifi.co.nz"
+        )
+        
+        embed.add_field(
+            name="🔧 Status",
+            value="Store accessible\nProduct parsing pending",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🌐 Manual Check",
+            value="[Search Pokemon at JB Hi-Fi](https://jbhifi.co.nz/search/?query=pokemon)",
+            inline=True
+        )
+        
+        embed.set_footer(text="💡 Use /report_sighting to manually report JB Hi-Fi finds")
+        
+        await interaction.followup.send(embed=embed)
+    
+    @app_commands.command(name="check_kmart", description="Check Kmart NZ Pokemon section")
+    async def check_kmart(self, interaction: discord.Interaction):
+        """Check Kmart NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        embed = discord.Embed(
+            title="🏪 Kmart NZ",
+            description="⚙️ **Pokemon Parsing Not Yet Implemented**\n\nStore scanning functionality not yet built.",
+            color=0xf39c12,
+            url="https://kmart.co.nz"
+        )
+        
+        embed.add_field(
+            name="🔧 Status",
+            value="Store parsing not implemented\nFuture development planned",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🌐 Manual Check",
+            value="[Visit Kmart NZ](https://kmart.co.nz)",
+            inline=True
+        )
+        
+        embed.set_footer(text="💡 Use /report_sighting to manually report Kmart finds")
+        
+        await interaction.followup.send(embed=embed)
+    
+    @app_commands.command(name="check_farmers", description="Check Farmers NZ Pokemon section")
+    async def check_farmers(self, interaction: discord.Interaction):
+        """Check Farmers NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        embed = discord.Embed(
+            title="🏪 Farmers NZ",
+            description="⚙️ **Pokemon Parsing Not Yet Implemented**\n\nStore scanning functionality not yet built.",
+            color=0xf39c12,
+            url="https://farmers.co.nz"
+        )
+        
+        embed.add_field(
+            name="🔧 Status",
+            value="Store parsing not implemented\nFuture development planned",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="🌐 Manual Check",
+            value="[Visit Farmers NZ](https://farmers.co.nz)",
+            inline=True
+        )
+        
+        embed.set_footer(text="💡 Use /report_sighting to manually report Farmers finds")
+        
+        await interaction.followup.send(embed=embed)
 
 async def setup(bot):
     """Setup function for the cog"""

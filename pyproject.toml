@@ -1,0 +1,54 @@
+# Python linting and formatting configuration
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | __pycache__
+  | legacy
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 100
+known_first_party = ["bot", "database", "monitors", "utils"]
+skip = ["legacy"]
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503", "F401"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "legacy",
+    ".venv",
+    "venv",
+    "build",
+    "dist"
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = ["legacy/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

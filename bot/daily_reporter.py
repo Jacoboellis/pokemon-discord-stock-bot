@@ -42,7 +42,11 @@ class DailyStockReporter:
         
         # Get all NZ stores from config
         store_configs = self.monitor.load_store_configs()
-        nz_stores = store_configs
+        
+        # Filter to only NZ stores (those ending with '_nz')
+        nz_stores = {k: v for k, v in store_configs.items() if k.endswith('_nz')}
+        
+        logger.info(f"Found {len(nz_stores)} NZ stores to scan: {list(nz_stores.keys())}")
         
         for store_id, config in nz_stores.items():
             try:
@@ -65,7 +69,7 @@ class DailyStockReporter:
                         product['store_name'] = config['name']
                         scan_results['products_found'].append(product)
                         
-                        # Check if this is a new arrival (not in database)
+                        # Check if this is a new arrival BEFORE we save it to database
                         if await self._is_new_arrival(product):
                             scan_results['new_arrivals'].append(product)
                 
@@ -88,8 +92,18 @@ class DailyStockReporter:
         """Scan a single store for Pokemon products"""
         try:
             if store_id == 'novagames_nz':
-                # Nova Games - we know this works
+                # Nova Games - we know this works perfectly
                 products = await self._scan_nova_games(config)
+                return {'status': 'success', 'products': products}
+                
+            elif store_id == 'cardmerchant_nz':
+                # Card Merchant - bot-friendly Pokemon specialist
+                products = await self._scan_cardmerchant(config)
+                return {'status': 'success', 'products': products}
+                
+            elif store_id == 'ebgames_nz':
+                # EB Games - newly implemented but blocked
+                products = await self._scan_ebgames(config)
                 return {'status': 'success', 'products': products}
                 
             elif store_id == 'thewarehouse_nz':
@@ -115,13 +129,90 @@ class DailyStockReporter:
         
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get(config['search_url']) as response:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                async with session.get(config['search_url'], headers=headers) as response:
                     if response.status == 200:
                         html = await response.text()
-                        # Parse Nova Games products
+                        # Use the generic monitor's parsing method
                         products = await self.monitor.parse_nova_games_products(html, config['base_url'])
+                        logger.info(f"Nova Games scan found {len(products)} products")
+                    else:
+                        logger.warning(f"Nova Games returned status {response.status}")
             except Exception as e:
                 logger.error(f"Error scanning Nova Games: {e}")
+        
+        return products
+    
+    async def _scan_ebgames(self, config: Dict) -> List[Dict]:
+        """Scan EB Games NZ for Pokemon products using Selenium"""
+        products = []
+        
+        try:
+            logger.info("EB Games scan using Selenium browser automation...")
+            # Run Selenium in a thread to avoid blocking
+            import asyncio
+            import concurrent.futures
+            
+            def run_selenium():
+                return self.monitor.parse_ebgames_products_selenium()
+            
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                products = await asyncio.get_event_loop().run_in_executor(
+                    executor, run_selenium
+                )
+            
+            logger.info(f"EB Games Selenium scan found {len(products)} products")
+        except Exception as e:
+            logger.error(f"Error scanning EB Games with Selenium: {e}")
+            # Fallback to regular HTTP scan (will likely get 403 but worth trying)
+            try:
+                async with aiohttp.ClientSession() as session:
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1',
+                    }
+                    
+                    async with session.get(config['search_url'], headers=headers, timeout=20) as response:
+                        if response.status == 200:
+                            html = await response.text()
+                            # Use the generic monitor's EB Games parsing method
+                            products = await self.monitor.parse_ebgames_products(html, config['base_url'])
+                            logger.info(f"EB Games fallback scan found {len(products)} products")
+                        elif response.status == 403:
+                            logger.warning("EB Games returned 403 Forbidden - bot detection confirmed")
+                        else:
+                            logger.warning(f"EB Games returned status {response.status}")
+            except Exception as fallback_error:
+                logger.error(f"EB Games fallback scan also failed: {fallback_error}")
+        
+        return products
+    
+    async def _scan_cardmerchant(self, config: Dict) -> List[Dict]:
+        """Scan Card Merchant NZ for Pokemon products using JSON API"""
+        products = []
+        
+        async with aiohttp.ClientSession() as session:
+            try:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                async with session.get(config['search_url'], headers=headers) as response:
+                    if response.status == 200:
+                        json_data = await response.text()  # Get as text first
+                        # Use the generic monitor's Card Merchant JSON parsing method
+                        products = await self.monitor.parse_cardmerchant_products(json_data, config['base_url'])
+                        logger.info(f"Card Merchant scan found {len(products)} products")
+                    else:
+                        logger.warning(f"Card Merchant returned status {response.status}")
+            except Exception as e:
+                logger.error(f"Error scanning Card Merchant: {e}")
         
         return products
     
@@ -172,26 +263,24 @@ class DailyStockReporter:
     async def _is_new_arrival(self, product: Dict) -> bool:
         """Check if product is a new arrival (not in database)"""
         try:
-            async with aiohttp.ClientSession() as session:
-                # Check if product exists in database
-                conn = sqlite3.connect('data/pokemon_stock.db')
-                cursor = conn.cursor()
-                
-                cursor.execute(
-                    "SELECT id FROM monitored_products WHERE sku = ? AND store_name LIKE ?",
-                    (product.get('sku', ''), f"%{product.get('store_id', '')}%")
-                )
-                exists = cursor.fetchone()
-                conn.close()
-                
-                return exists is None
+            # Use the database manager's method to check if product exists
+            products = await self.db_manager.get_products_by_store(product.get('store_name', ''))
+            
+            # Check if this SKU already exists for this store
+            product_sku = product.get('sku', product.get('url', ''))
+            for existing in products:
+                if existing['sku'] == product_sku:
+                    return False  # Product already exists, not new
+            
+            return True  # Product doesn't exist, it's new
         except Exception as e:
             logger.error(f"Error checking if product is new arrival: {e}")
             return False
     
     async def _save_scan_results(self, results: Dict):
-        """Save scan results to database for historical tracking"""
+        """Save scan results to database for historical tracking and stock management"""
         try:
+            # Save to daily_scans table for history
             conn = sqlite3.connect('data/pokemon_stock.db')
             cursor = conn.cursor()
             
@@ -226,8 +315,41 @@ class DailyStockReporter:
             conn.commit()
             conn.close()
             
+            # Save each product to the stock tracking database
+            for product in results['products_found']:
+                await self._save_product_to_stock_db(product)
+            
         except Exception as e:
             logger.error(f"Error saving scan results: {e}")
+    
+    async def _save_product_to_stock_db(self, product: Dict):
+        """Save individual product to stock tracking database"""
+        try:
+            # Extract product data
+            sku = product.get('sku', product.get('url', ''))
+            store_name = product.get('store_name', 'Unknown Store')
+            product_name = product.get('name', 'Unknown Product')
+            product_url = product.get('url', '')
+            price = product.get('price', 0)
+            
+            # Use database manager to upsert the product
+            success, is_new = await self.db_manager.upsert_product_from_scan(
+                sku=sku,
+                store_name=store_name,
+                product_name=product_name,
+                product_url=product_url,
+                price=price,
+                stock_status="In Stock"
+            )
+            
+            if success:
+                status = "Added new" if is_new else "Updated existing"
+                logger.info(f"{status} product: {product_name} from {store_name}")
+            else:
+                logger.error(f"Failed to save product: {product_name} from {store_name}")
+                
+        except Exception as e:
+            logger.error(f"Error saving individual product to stock DB: {e}")
     
     async def _send_daily_report(self, channel_id: int, results: Dict):
         """Send formatted daily report to Discord channel"""
@@ -260,12 +382,36 @@ class DailyStockReporter:
             if results['new_arrivals']:
                 arrivals_text = []
                 for product in results['new_arrivals'][:5]:  # Show first 5
-                    price_text = f"${product['price']:.2f}" if product.get('price') else "Price TBA"
-                    arrivals_text.append(f"• **{product['name']}** - {price_text}\n  📍 {product['store_name']}")
+                    price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "Price TBA"
+                    product_name = product.get('name', 'Unknown Product')
+                    # Clean up product name if it's too long or messy
+                    if len(product_name) > 50:
+                        product_name = product_name[:47] + "..."
+                    arrivals_text.append(f"• **{product_name}** - {price_text}\n  📍 {product['store_name']}")
                 
                 embed.add_field(
                     name="🆕 New Arrivals Today",
                     value="\n".join(arrivals_text),
+                    inline=False
+                )
+            
+            # Show ALL products found today
+            if results['products_found']:
+                all_products_text = []
+                for product in results['products_found'][:10]:  # Show first 10
+                    price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "TBA"
+                    product_name = product.get('name', 'Unknown Product')
+                    # Clean up product name
+                    if len(product_name) > 45:
+                        product_name = product_name[:42] + "..."
+                    all_products_text.append(f"• **{product_name}** - {price_text}")
+                
+                if len(results['products_found']) > 10:
+                    all_products_text.append(f"... and {len(results['products_found']) - 10} more products")
+                
+                embed.add_field(
+                    name="🎮 All Products Found Today",
+                    value="\n".join(all_products_text),
                     inline=False
                 )
             else:
