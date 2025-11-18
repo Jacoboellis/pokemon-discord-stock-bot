@@ -674,7 +674,7 @@ class SlashCommands(commands.Cog):
                 max_concurrent_checks = 5
             
             monitor = GenericStoreMonitor(MockConfig())
-            products = await monitor.get_ebgames_products()
+            products = await monitor.get_ebgames_products_selenium()
             
             if not products:
                 embed = discord.Embed(
@@ -738,89 +738,305 @@ class SlashCommands(commands.Cog):
             )
             await interaction.followup.send(embed=embed)
     
-    @app_commands.command(name="check_warehouse", description="Check The Warehouse NZ Pokemon section")
+    @app_commands.command(name="check_warehouse", description="Check The Warehouse NZ Pokemon TCG stock")
     async def check_warehouse(self, interaction: discord.Interaction):
         """Check The Warehouse NZ stock via slash command"""
         await interaction.response.defer(thinking=True)
         
-        embed = discord.Embed(
-            title="🏪 The Warehouse NZ",
-            description="⚙️ **Pokemon Parsing Not Yet Implemented**\n\nWe can reach the store but haven't built Pokemon product detection yet.",
-            color=0xf39c12,
-            url="https://thewarehouse.co.nz"
-        )
-        
-        embed.add_field(
-            name="🔧 Status",
-            value="Store accessible\nProduct parsing pending",
-            inline=True
-        )
-        
-        embed.add_field(
-            name="🌐 Manual Check",
-            value="[Search Pokemon at The Warehouse](https://thewarehouse.co.nz/search?q=pokemon)",
-            inline=True
-        )
-        
-        embed.set_footer(text="💡 Use /report_sighting to manually report Warehouse finds")
-        
-        await interaction.followup.send(embed=embed)
+        try:
+            from monitors.generic_monitor import GenericStoreMonitor
+            
+            # Create mock config for the monitor
+            class MockConfig:
+                check_interval = 60
+                max_concurrent_checks = 5
+            
+            monitor = GenericStoreMonitor(MockConfig())
+            products = await monitor.get_warehouse_products_selenium()
+            
+            if not products:
+                embed = discord.Embed(
+                    title="🏪 The Warehouse NZ",
+                    description="⚙️ **No Pokemon TCG products found**\n\nThis could be due to:\n• No Pokemon TCG stock currently available\n• Website changes or bot detection\n• Products not matching TCG keywords",
+                    color=0xf39c12,
+                    url="https://thewarehouse.co.nz"
+                )
+                embed.add_field(
+                    name="🔧 Status",
+                    value="Selenium scraper active\nSearching for Pokemon TCG only",
+                    inline=True
+                )
+                embed.add_field(
+                    name="🌐 Manual Check",
+                    value="[Search Pokemon at The Warehouse](https://thewarehouse.co.nz/search?q=pokemon)",
+                    inline=True
+                )
+                embed.set_footer(text="💡 Use /report_sighting to manually report Warehouse finds")
+                await interaction.followup.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title="🏪 The Warehouse NZ - Pokemon TCG Stock",
+                description=f"Found **{len(products)}** Pokemon TCG products",
+                color=0x2ecc71,
+                url="https://thewarehouse.co.nz/search?q=pokemon"
+            )
+            
+            # Add products (limit to 10 for space)
+            for i, product in enumerate(products[:10]):
+                stock_status = "🟢 Available" if product.get('available', False) else "🔴 Out of Stock"
+                price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "Price TBA"
+                
+                embed.add_field(
+                    name=f"{i+1}. {product['name'][:50]}{'...' if len(product['name']) > 50 else ''}",
+                    value=f"{stock_status} • {price_text}\n[View Product]({product.get('url', 'https://thewarehouse.co.nz')})",
+                    inline=False
+                )
+            
+            if len(products) > 10:
+                embed.add_field(
+                    name=f"+ {len(products) - 10} More Products",
+                    value="Visit [The Warehouse Pokemon Search](https://thewarehouse.co.nz/search?q=pokemon) to see all products",
+                    inline=False
+                )
+            
+            embed.set_footer(text="🤖 Powered by Selenium • Pokemon TCG products only")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            self.logger.error(f"Error in check_warehouse command: {e}")
+            embed = discord.Embed(
+                title="🏪 The Warehouse NZ",
+                description="❌ Error checking store with Selenium - may be temporarily unavailable",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed)
     
-    @app_commands.command(name="check_jb_hifi", description="Check JB Hi-Fi NZ Pokemon section")
+    @app_commands.command(name="check_jb_hifi", description="Check JB Hi-Fi NZ Pokemon TCG stock")
     async def check_jb_hifi(self, interaction: discord.Interaction):
         """Check JB Hi-Fi NZ stock via slash command"""
         await interaction.response.defer(thinking=True)
         
-        embed = discord.Embed(
-            title="🏪 JB Hi-Fi NZ",
-            description="⚙️ **Pokemon Parsing Not Yet Implemented**\n\nWe can reach the store but haven't built Pokemon product detection yet.",
-            color=0xf39c12,
-            url="https://jbhifi.co.nz"
-        )
-        
-        embed.add_field(
-            name="🔧 Status",
-            value="Store accessible\nProduct parsing pending",
-            inline=True
-        )
-        
-        embed.add_field(
-            name="🌐 Manual Check",
-            value="[Search Pokemon at JB Hi-Fi](https://jbhifi.co.nz/search/?query=pokemon)",
-            inline=True
-        )
-        
-        embed.set_footer(text="💡 Use /report_sighting to manually report JB Hi-Fi finds")
-        
-        await interaction.followup.send(embed=embed)
+        try:
+            from monitors.generic_monitor import GenericStoreMonitor
+            
+            # Create mock config for the monitor
+            class MockConfig:
+                check_interval = 60
+                max_concurrent_checks = 5
+            
+            monitor = GenericStoreMonitor(MockConfig())
+            products = await monitor.get_jbhifi_products_selenium()
+            
+            if not products:
+                embed = discord.Embed(
+                    title="🏪 JB Hi-Fi NZ",
+                    description="⚙️ **No Pokemon TCG products found**\n\nThis could be due to:\n• No Pokemon TCG stock currently available\n• Website changes or bot detection\n• Products not matching TCG keywords",
+                    color=0xf39c12,
+                    url="https://jbhifi.co.nz"
+                )
+                embed.add_field(
+                    name="🔧 Status",
+                    value="Selenium scraper active\nSearching for Pokemon TCG only",
+                    inline=True
+                )
+                embed.add_field(
+                    name="🌐 Manual Check",
+                    value="[Search Pokemon at JB Hi-Fi](https://jbhifi.co.nz/search/?query=pokemon)",
+                    inline=True
+                )
+                embed.set_footer(text="💡 Use /report_sighting to manually report JB Hi-Fi finds")
+                await interaction.followup.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title="🏪 JB Hi-Fi NZ - Pokemon TCG Stock", 
+                description=f"Found **{len(products)}** Pokemon TCG products",
+                color=0x2ecc71,
+                url="https://jbhifi.co.nz/search/?query=pokemon"
+            )
+            
+            # Add products (limit to 10 for space)
+            for i, product in enumerate(products[:10]):
+                stock_status = "🟢 Available" if product.get('available', False) else "🔴 Out of Stock"
+                price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "Price TBA"
+                
+                embed.add_field(
+                    name=f"{i+1}. {product['name'][:50]}{'...' if len(product['name']) > 50 else ''}",
+                    value=f"{stock_status} • {price_text}\n[View Product]({product.get('url', 'https://jbhifi.co.nz')})",
+                    inline=False
+                )
+            
+            if len(products) > 10:
+                embed.add_field(
+                    name=f"+ {len(products) - 10} More Products",
+                    value="Visit [JB Hi-Fi Pokemon Search](https://jbhifi.co.nz/search/?query=pokemon) to see all products",
+                    inline=False
+                )
+            
+            embed.set_footer(text="🤖 Powered by Selenium • Pokemon TCG products only")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            self.logger.error(f"Error in check_jb_hifi command: {e}")
+            embed = discord.Embed(
+                title="🏪 JB Hi-Fi NZ",
+                description="❌ Error checking store with Selenium - may be temporarily unavailable",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed)
     
-    @app_commands.command(name="check_kmart", description="Check Kmart NZ Pokemon section")
+    @app_commands.command(name="check_mighty_ape", description="Check Mighty Ape NZ Pokemon TCG stock")
+    async def check_mighty_ape(self, interaction: discord.Interaction):
+        """Check Mighty Ape NZ stock via slash command"""
+        await interaction.response.defer(thinking=True)
+        
+        try:
+            from monitors.generic_monitor import GenericStoreMonitor
+            
+            # Create mock config for the monitor
+            class MockConfig:
+                check_interval = 60
+                max_concurrent_checks = 5
+            
+            monitor = GenericStoreMonitor(MockConfig())
+            products = await monitor.get_mightyape_products_selenium()
+            
+            if not products:
+                embed = discord.Embed(
+                    title="🏪 Mighty Ape NZ",
+                    description="⚙️ **No Pokemon TCG products found**\n\nThis could be due to:\n• No Pokemon TCG stock currently available\n• Website changes or bot detection\n• Products not matching TCG keywords",
+                    color=0xf39c12,
+                    url="https://www.mightyape.co.nz"
+                )
+                embed.add_field(
+                    name="🔧 Status",
+                    value="Selenium scraper active\nSearching for Pokemon TCG only",
+                    inline=True
+                )
+                embed.add_field(
+                    name="🌐 Manual Check",
+                    value="[Search Pokemon TCG at Mighty Ape](https://www.mightyape.co.nz/mn/shop/?q=pokemon+tcg)",
+                    inline=True
+                )
+                embed.set_footer(text="💡 Use /report_sighting to manually report Mighty Ape finds")
+                await interaction.followup.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title="🏪 Mighty Ape NZ - Pokemon TCG Stock",
+                description=f"Found **{len(products)}** Pokemon TCG products",
+                color=0x2ecc71,
+                url="https://www.mightyape.co.nz/mn/shop/?q=pokemon+tcg"
+            )
+            
+            # Add products (limit to 10 for space)
+            for i, product in enumerate(products[:10]):
+                stock_status = "🟢 Available" if product.get('available', False) else "🔴 Out of Stock"
+                price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "Price TBA"
+                
+                embed.add_field(
+                    name=f"{i+1}. {product['name'][:50]}{'...' if len(product['name']) > 50 else ''}",
+                    value=f"{stock_status} • {price_text}\n[View Product]({product.get('url', 'https://www.mightyape.co.nz')})",
+                    inline=False
+                )
+            
+            if len(products) > 10:
+                embed.add_field(
+                    name=f"+ {len(products) - 10} More Products",
+                    value="Visit [Mighty Ape Pokemon TCG Search](https://www.mightyape.co.nz/mn/shop/?q=pokemon+tcg) to see all products",
+                    inline=False
+                )
+            
+            embed.set_footer(text="🤖 Powered by Selenium • Pokemon TCG products only")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            self.logger.error(f"Error in check_mighty_ape command: {e}")
+            embed = discord.Embed(
+                title="🏪 Mighty Ape NZ",
+                description="❌ Error checking store with Selenium - may be temporarily unavailable",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed)
+    
+    @app_commands.command(name="check_kmart", description="Check Kmart NZ Pokemon TCG stock")
     async def check_kmart(self, interaction: discord.Interaction):
         """Check Kmart NZ stock via slash command"""
         await interaction.response.defer(thinking=True)
         
-        embed = discord.Embed(
-            title="🏪 Kmart NZ",
-            description="⚙️ **Pokemon Parsing Not Yet Implemented**\n\nStore scanning functionality not yet built.",
-            color=0xf39c12,
-            url="https://kmart.co.nz"
-        )
-        
-        embed.add_field(
-            name="🔧 Status",
-            value="Store parsing not implemented\nFuture development planned",
-            inline=True
-        )
-        
-        embed.add_field(
-            name="🌐 Manual Check",
-            value="[Visit Kmart NZ](https://kmart.co.nz)",
-            inline=True
-        )
-        
-        embed.set_footer(text="💡 Use /report_sighting to manually report Kmart finds")
-        
-        await interaction.followup.send(embed=embed)
+        try:
+            from monitors.generic_monitor import GenericStoreMonitor
+            
+            # Create mock config for the monitor
+            class MockConfig:
+                check_interval = 60
+                max_concurrent_checks = 5
+            
+            monitor = GenericStoreMonitor(MockConfig())
+            products = await monitor.get_kmart_products_selenium()
+            
+            if not products:
+                embed = discord.Embed(
+                    title="🏪 Kmart NZ",
+                    description="⚙️ **No Pokemon TCG products found**\n\nThis could be due to:\n• No Pokemon TCG stock currently available\n• Website changes or bot detection\n• Products not matching TCG keywords",
+                    color=0xf39c12,
+                    url="https://kmart.co.nz"
+                )
+                embed.add_field(
+                    name="🔧 Status",
+                    value="Selenium scraper active\nSearching for Pokemon TCG only",
+                    inline=True
+                )
+                embed.add_field(
+                    name="🌐 Manual Check",
+                    value="[Search Pokemon at Kmart](https://www.kmart.co.nz/search/?text=pokemon)",
+                    inline=True
+                )
+                embed.set_footer(text="💡 Use /report_sighting to manually report Kmart finds")
+                await interaction.followup.send(embed=embed)
+                return
+            
+            embed = discord.Embed(
+                title="🏪 Kmart NZ - Pokemon TCG Stock",
+                description=f"Found **{len(products)}** Pokemon TCG products",
+                color=0x2ecc71,
+                url="https://www.kmart.co.nz/search/?text=pokemon"
+            )
+            
+            # Add products (limit to 10 for space)
+            for i, product in enumerate(products[:10]):
+                stock_status = "🟢 Available" if product.get('available', False) else "🔴 Out of Stock"
+                price_text = f"${product['price']:.2f}" if product.get('price') and product['price'] > 0 else "Price TBA"
+                
+                embed.add_field(
+                    name=f"{i+1}. {product['name'][:50]}{'...' if len(product['name']) > 50 else ''}",
+                    value=f"{stock_status} • {price_text}\n[View Product]({product.get('url', 'https://kmart.co.nz')})",
+                    inline=False
+                )
+            
+            if len(products) > 10:
+                embed.add_field(
+                    name=f"+ {len(products) - 10} More Products",
+                    value="Visit [Kmart Pokemon Search](https://www.kmart.co.nz/search/?text=pokemon) to see all products",
+                    inline=False
+                )
+            
+            embed.set_footer(text="🤖 Powered by Selenium • Pokemon TCG products only")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            self.logger.error(f"Error in check_kmart command: {e}")
+            embed = discord.Embed(
+                title="🏪 Kmart NZ",
+                description="❌ Error checking store with Selenium - may be temporarily unavailable",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed)
     
     @app_commands.command(name="check_farmers", description="Check Farmers NZ Pokemon section")
     async def check_farmers(self, interaction: discord.Interaction):

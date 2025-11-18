@@ -839,7 +839,102 @@ class GenericStoreMonitor(BaseMonitor):
                 for p in products
             ]
         except Exception as e:
-            logger.error(f"Error getting EB Games products: {e}")
+            logger.error(f"Error getting Card Merchant products: {e}")
+            return []
+
+    async def get_ebgames_products_selenium(self) -> List[Dict[str, Any]]:
+        """Get Pokemon TCG products from EB Games NZ using Selenium"""
+        try:
+            from universal_selenium_scraper import get_ebgames_pokemon_tcg
+            products = await get_ebgames_pokemon_tcg()
+            return [
+                {
+                    'name': p['name'],
+                    'price': p.get('price', 0.0),
+                    'url': p.get('url', ''),
+                    'sku': p.get('sku', ''),
+                    'available': p.get('status', '') == 'In Stock'
+                }
+                for p in products
+            ]
+        except Exception as e:
+            logger.error(f"Error getting EB Games products with Selenium: {e}")
+            return []
+
+    async def get_warehouse_products_selenium(self) -> List[Dict[str, Any]]:
+        """Get Pokemon TCG products from The Warehouse NZ using Selenium"""
+        try:
+            from universal_selenium_scraper import get_warehouse_pokemon_tcg
+            products = await get_warehouse_pokemon_tcg()
+            return [
+                {
+                    'name': p['name'],
+                    'price': p.get('price', 0.0),
+                    'url': p.get('url', ''),
+                    'sku': p.get('sku', ''),
+                    'available': p.get('status', '') == 'In Stock'
+                }
+                for p in products
+            ]
+        except Exception as e:
+            logger.error(f"Error getting Warehouse products with Selenium: {e}")
+            return []
+
+    async def get_jbhifi_products_selenium(self) -> List[Dict[str, Any]]:
+        """Get Pokemon TCG products from JB Hi-Fi NZ using Selenium"""
+        try:
+            from universal_selenium_scraper import get_jbhifi_pokemon_tcg
+            products = await get_jbhifi_pokemon_tcg()
+            return [
+                {
+                    'name': p['name'],
+                    'price': p.get('price', 0.0),
+                    'url': p.get('url', ''),
+                    'sku': p.get('sku', ''),
+                    'available': p.get('status', '') == 'In Stock'
+                }
+                for p in products
+            ]
+        except Exception as e:
+            logger.error(f"Error getting JB Hi-Fi products with Selenium: {e}")
+            return []
+
+    async def get_kmart_products_selenium(self) -> List[Dict[str, Any]]:
+        """Get Pokemon TCG products from Kmart NZ using Selenium"""
+        try:
+            from universal_selenium_scraper import get_kmart_pokemon_tcg
+            products = await get_kmart_pokemon_tcg()
+            return [
+                {
+                    'name': p['name'],
+                    'price': p.get('price', 0.0),
+                    'url': p.get('url', ''),
+                    'sku': p.get('sku', ''),
+                    'available': p.get('status', '') == 'In Stock'
+                }
+                for p in products
+            ]
+        except Exception as e:
+            logger.error(f"Error getting Kmart products with Selenium: {e}")
+            return []
+
+    async def get_mightyape_products_selenium(self) -> List[Dict[str, Any]]:
+        """Get Pokemon TCG products from Mighty Ape NZ using Selenium"""
+        try:
+            from universal_selenium_scraper import get_mightyape_pokemon_tcg
+            products = await get_mightyape_pokemon_tcg()
+            return [
+                {
+                    'name': p['name'],
+                    'price': p.get('price', 0.0),
+                    'url': p.get('url', ''),
+                    'sku': p.get('sku', ''),
+                    'available': p.get('status', '') == 'In Stock'
+                }
+                for p in products
+            ]
+        except Exception as e:
+            logger.error(f"Error getting Mighty Ape products with Selenium: {e}")
             return []
 
     def add_custom_store(self, store_name: str, store_config: Dict):
