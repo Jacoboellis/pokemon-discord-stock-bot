@@ -8,6 +8,7 @@ schedule==1.2.0
 lxml==4.9.3
 pyyaml==6.0.1
 brotli==1.2.0
+selenium==4.15.2
 
 # Note: sqlite3 is part of Python standard library
 # Note: asyncio is part of Python standard library
