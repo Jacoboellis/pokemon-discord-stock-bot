@@ -11,13 +11,38 @@ nz_stores:
     notes: "Only shows in-stock items - perfect for monitoring!"
     status: "✅ WORKING"
     
+  cardmerchant_nz:
+    name: "Card Merchant NZ"
+    base_url: "https://cardmerchant.co.nz"
+    search_url: "https://cardmerchant.co.nz/collections/pokemon-sealed"
+    example_product: "https://cardmerchant.co.nz/collections/pokemon-sealed/products/pokemon-scarlet-violet-paldean-fates-booster-pack"
+    example_sku: "pokemon-scarlet-violet-paldean-fates-booster-pack"
+    notes: "Specialized Pokemon TCG store - excellent selection!"
+    status: "✅ WORKING"
+    
   ebgames_nz:
     name: "EB Games NZ"
     base_url: "https://www.ebgames.co.nz"
     search_url: "https://www.ebgames.co.nz/search?q={query}"
     example_product: "https://www.ebgames.co.nz/product/toys-and-collectibles/331696-pokemon-tcg-mega-heroes-mini-tins-assorted"
     example_sku: "331696"
-    status: "⚠️ BLOCKED - HTTP 403"
+    status: "✅ WORKING"
+    
+  jbhifi_nz:
+    name: "JB Hi-Fi NZ"
+    base_url: "https://www.jbhifi.co.nz"
+    search_url: "https://www.jbhifi.co.nz/search?query={query}"
+    example_search: "https://www.jbhifi.co.nz/search?query=pokemon%20tcg"
+    status: "✅ WORKING"
+    
+  pbtech_nz:
+    name: "PB Tech NZ"
+    base_url: "https://www.pbtech.co.nz"
+    search_url: "https://www.pbtech.co.nz/search?sf={query}&search_type=prediction"
+    example_product: "https://www.pbtech.co.nz/product/CRDPKM1122/POKEMON-TCG-Inferno-X-M2-Booster-Box---Japanese-Ve"
+    example_sku: "CRDPKM1122"
+    notes: "Electronics retailer with Pokemon TCG section"
+    status: "✅ WORKING"
     
   thewarehouse_nz:
     name: "The Warehouse NZ"
@@ -25,13 +50,6 @@ nz_stores:
     search_url: "https://www.thewarehouse.co.nz/search?q={query}&lang=default&search-button="
     example_product: "https://www.thewarehouse.co.nz/p/pokemon-2024-world-championships-deck-assorted/R2984751.html"
     example_sku: "R2984751"
-    status: "🔄 READY TO TEST"
-    
-  jbhifi_nz:
-    name: "JB Hi-Fi NZ"
-    base_url: "https://www.jbhifi.co.nz"
-    search_url: "https://www.jbhifi.co.nz/search?query={query}"
-    example_search: "https://www.jbhifi.co.nz/search?query=pokemon%20tcg"
     status: "🔄 READY TO TEST"
     
   kmart_nz:

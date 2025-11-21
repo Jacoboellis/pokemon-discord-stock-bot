@@ -5,7 +5,10 @@ Supports: Kmart NZ, The Warehouse NZ, JB Hi-Fi NZ, and EB Games NZ
 """
 
 import time
+import re
 import asyncio
+import aiohttp
+import random
 from typing import List, Dict, Any, Optional
 from bs4 import BeautifulSoup as soup
 from selenium import webdriver
@@ -19,7 +22,7 @@ from utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 class UniversalSeleniumScraper:
-    """Universal scraper for NZ stores using Selenium"""
+    """Universal scraper for NZ stores using Selenium with advanced bot protection bypass"""
     
     def __init__(self, headless=True):
         self.headless = headless
@@ -83,14 +86,17 @@ class UniversalSeleniumScraper:
                 'base_url': 'https://www.jbhifi.co.nz',
                 'search_url': 'https://www.jbhifi.co.nz/search?query=pokemon%20tcg',
                 'product_selectors': [
-                    'div[class*="_10ipotx"]',  # Discovered obfuscated class pattern
-                    'div',  # Will filter by pokemon content
+                    '[data-testid*="product"]',  # This is the correct selector!
+                    'div[data-testid="product-tile"]',  # More specific version
+                    '.product-tile'  # Fallback
                 ],
                 'name_selectors': [
-                    'a', 'text'  # Extract from links or direct text
+                    '[data-testid="product-title"]',
+                    'h3', 'h4', 'a[title]', '.product-title'
                 ],
                 'price_selectors': [
-                    'text'  # Extract from container text
+                    '[data-testid="price"]',
+                    '.price', '.current-price', '.product-price'
                 ],
                 'wait_time': 8,  # Extra time for heavy JS
                 'custom_extraction': True  # Use custom extraction method
@@ -111,33 +117,141 @@ class UniversalSeleniumScraper:
                     '.price', '.product-price', '.buyNew', '.current-price',
                     '[class*="price"]', '.cost'
                 ]
+            },
+            'pbtech_nz': {
+                'name': 'PB Tech NZ',
+                'base_url': 'https://www.pbtech.co.nz',
+                'search_url': 'https://www.pbtech.co.nz/search?sf=pokemon+tcg&search_type=prediction',
+                'product_selectors': [
+                    'a.js-product-link.product-link.uniqueID',  # Exact selector for product containers
+                    'a[data-product-code]',  # Fallback selector
+                    '.product-link'  # Generic fallback
+                ],
+                'name_selectors': [
+                    'img[alt]',  # Product name is in image alt text
+                    'title',  # Also in title attribute
+                    'text'  # Direct text extraction
+                ],
+                'price_selectors': [
+                    '[data-price]',  # Price is in data-price attribute
+                    '.price', '.cost'  # Standard fallbacks
+                ],
+                'wait_time': 4,  # Wait for JS to load
+                'custom_extraction': True  # Need custom logic for this site
+            },
+            'novagames_nz': {
+                'name': 'Nova Games NZ',
+                'base_url': 'https://novagames.co.nz',
+                'search_url': 'https://novagames.co.nz/collections/pokemon',
+                'simple_http': True  # Use HTTP instead of Selenium
+            },
+            'cardmerchant_nz': {
+                'name': 'Card Merchant NZ', 
+                'base_url': 'https://cardmerchant.co.nz',
+                'search_url': 'https://cardmerchant.co.nz/collections/pokemon-sealed',
+                'simple_http': True  # Use HTTP instead of Selenium
             }
         }
     
     def setup_driver(self):
-        """Setup Chrome driver with stealth options"""
+        """Setup Chrome driver with advanced stealth options and Cloudflare bypass"""
         chrome_options = Options()
         
         if self.headless:
             chrome_options.add_argument('--headless')
         
-        # Stealth options to avoid bot detection
+        # Advanced stealth options to avoid bot detection and bypass Cloudflare
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_argument('--disable-web-security')
+        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-plugins')
+        chrome_options.add_argument('--disable-images')  # Faster loading
+        chrome_options.add_argument('--disable-javascript')  # Bypass some bot detection
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-logging')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--no-first-run')
+        chrome_options.add_argument('--disable-background-timer-throttling')
+        chrome_options.add_argument('--disable-renderer-backgrounding')
+        chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+        chrome_options.add_argument('--disable-ipc-flooding-protection')
+        
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        
+        # Randomized user agent
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
+        import random
+        selected_user_agent = random.choice(user_agents)
+        chrome_options.add_argument(f'--user-agent={selected_user_agent}')
         
         try:
             self.driver = webdriver.Chrome(options=chrome_options)
+            
+            # Execute stealth scripts to hide automation
             self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            logger.info("Chrome driver setup successful")
+            self.driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]})")
+            self.driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']})")
+            self.driver.execute_script("window.chrome = {runtime: {}}")
+            
+            logger.info(f"Chrome driver setup successful with user agent: {selected_user_agent}")
             return True
         except Exception as e:
             logger.error(f"Failed to setup Chrome driver: {e}")
             return False
-    
+
+    def handle_cloudflare(self):
+        """Check for and handle Cloudflare protection"""
+        try:
+            current_url = self.driver.current_url
+            page_source = self.driver.page_source.lower()
+            
+            # Check for Cloudflare indicators
+            cloudflare_indicators = [
+                'checking your browser before accessing',
+                'cloudflare',
+                'please wait while we check your browser',
+                'ddos protection by cloudflare'
+            ]
+            
+            if any(indicator in page_source for indicator in cloudflare_indicators):
+                logger.info("Cloudflare detected, waiting for bypass...")
+                
+                # Wait for Cloudflare to complete (up to 30 seconds)
+                wait_time = 0
+                max_wait = 30
+                
+                while wait_time < max_wait:
+                    time.sleep(2)
+                    wait_time += 2
+                    
+                    # Check if we've moved past Cloudflare
+                    new_url = self.driver.current_url
+                    new_source = self.driver.page_source.lower()
+                    
+                    if (new_url != current_url or 
+                        not any(indicator in new_source for indicator in cloudflare_indicators)):
+                        logger.info(f"Cloudflare bypassed after {wait_time} seconds")
+                        return True
+                
+                logger.warning(f"Cloudflare bypass may have failed after {max_wait} seconds")
+                return False
+            
+            return True  # No Cloudflare detected
+            
+        except Exception as e:
+            logger.error(f"Error handling Cloudflare: {e}")
+            return False
+
     def scroll_to_load_all(self, max_scrolls=10):
         """Scroll down to load all products"""
         last_height = self.driver.execute_script("return document.body.scrollHeight")
@@ -169,6 +283,81 @@ class UniversalSeleniumScraper:
         logger.info(f"Completed scrolling after {scrolls} attempts")
     
     async def get_store_products(self, store_key: str) -> List[Dict[str, Any]]:
+        """Get products from a store using either HTTP or Selenium based on store config"""
+        if store_key not in self.store_configs:
+            logger.error(f"Unknown store: {store_key}")
+            return []
+        
+        store_config = self.store_configs[store_key]
+        
+        # Use simple HTTP for stores that don't need Selenium
+        if store_config.get('simple_http'):
+            return await self.get_store_products_http(store_key)
+        
+        # Use Selenium for complex stores
+        return await self.get_store_products_selenium(store_key)
+    
+    async def get_store_products_http(self, store_key: str) -> List[Dict[str, Any]]:
+        """Simple HTTP scraping for stores without bot protection"""
+        store_config = self.store_configs[store_key]
+        url = store_config['search_url']
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        try:
+            async with aiohttp.ClientSession(headers=headers) as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        html = await response.text()
+                        soup_obj = soup(html, 'html.parser')
+                        
+                        products = []
+                        product_links = soup_obj.find_all('a', href=re.compile(r'/products/'))
+                        
+                        for link in product_links:
+                            try:
+                                title = link.get_text().strip()
+                                href = link.get('href', '')
+                                
+                                # Filter for actual products with meaningful titles
+                                if title and len(title) > 5 and not any(skip in title.lower() 
+                                    for skip in ['sold out', 'addtocart', 'add to cart']):
+                                    
+                                    # Extract price (simple approach)
+                                    price = 0.0
+                                    price_elem = link.find_parent().find(text=re.compile(r'\$\d+'))
+                                    if price_elem:
+                                        price_match = re.search(r'\$(\d+(?:\.\d{2})?)', price_elem)
+                                        if price_match:
+                                            price = float(price_match.group(1))
+                                    
+                                    products.append({
+                                        'name': title,
+                                        'price': price,
+                                        'url': f"{store_config['base_url']}{href}",
+                                        'store': store_config['name'],
+                                        'stock_status': 'In Stock',
+                                        'sku': self.extract_sku_from_url(href)
+                                    })
+                                    
+                            except Exception as e:
+                                logger.debug(f"Error parsing product from {store_config['name']}: {e}")
+                                continue
+                        
+                        logger.info(f"Found {len(products)} products from {store_config['name']} via HTTP")
+                        return products
+                        
+                    else:
+                        logger.error(f"{store_config['name']} returned status {response.status}")
+                        return []
+                        
+        except Exception as e:
+            logger.error(f"HTTP scraping error for {store_config['name']}: {e}")
+            return []
+    
+    async def get_store_products_selenium(self, store_key: str) -> List[Dict[str, Any]]:
         """Get Pokemon TCG products from specified store"""
         if store_key not in self.store_configs:
             logger.error(f"Unknown store: {store_key}")
@@ -184,6 +373,11 @@ class UniversalSeleniumScraper:
             logger.info(f"Accessing {store_config['name']}: {store_config['search_url']}")
             
             self.driver.get(store_config['search_url'])
+            
+            # Handle Cloudflare if present
+            if not self.handle_cloudflare():
+                logger.warning(f"Failed to bypass Cloudflare for {store_config['name']}")
+                # Continue anyway, sometimes it still works
             
             # Wait for page to load
             try:
@@ -341,6 +535,11 @@ class UniversalSeleniumScraper:
     
     def parse_product_container(self, container, store_config) -> Optional[Dict[str, Any]]:
         """Parse individual product container"""
+        
+        # Special handling for PB Tech
+        if 'pbtech' in store_config.get('name', '').lower():
+            return self.parse_pbtech_product(container)
+        
         product = {}
         
         # Extract product name and URL
@@ -388,8 +587,96 @@ class UniversalSeleniumScraper:
         
         return product
     
-    def extract_price(self, price_text: str) -> float:
-        """Extract numeric price from text"""
+    def parse_pbtech_product(self, container) -> Optional[Dict[str, Any]]:
+        """Special parsing for PB Tech products"""
+        # PB Tech structure: a.js-product-link with data-product-code
+        product_code = container.get('data-product-code')
+        if not product_code:
+            return None
+            
+        product = {}
+        
+        # Extract product name from image alt text or title
+        img_elem = container.select_one('img[alt]')
+        if img_elem:
+            product['name'] = img_elem.get('alt', '').strip()
+        
+        # If no name from image, try title attribute
+        if not product.get('name'):
+            title = container.get('title', '').strip()
+            if title:
+                product['name'] = title
+        
+        # Extract URL from href
+        href = container.get('href', '')
+        if href:
+            if href.startswith('/'):
+                product['url'] = f"https://www.pbtech.co.nz{href}"
+            else:
+                product['url'] = href
+        
+        # Extract price from data-price attribute or price elements
+        price_text = container.get('data-price', '')
+        if not price_text:
+            # Look for price in child elements
+            price_elem = container.select_one('.price, [data-price], .product-price')
+            if price_elem:
+                price_text = price_elem.get_text(strip=True)
+        
+        if price_text:
+            price = self.extract_price(price_text)
+            if price:
+                product['price'] = price
+        
+        # Set store info
+        product['store'] = 'PB Tech NZ'
+        product['sku'] = product_code
+        product['status'] = 'available'  # PB Tech doesn't show out of stock items typically
+        
+        return product if product.get('name') else None
+
+    def extract_sku_from_url(self, url: str) -> str:
+        """Extract SKU from product URL"""
+        import re
+        
+        # Look for product ID in URL
+        sku_patterns = [
+            r'/([0-9]+)',  # Basic numeric ID
+            r'[?&]id=([^&]+)',  # Query parameter
+            r'/products/([^/?]+)',  # Product slug
+            r'[?&]sku=([^&]+)'  # SKU parameter
+        ]
+        
+        for pattern in sku_patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        
+        return ''
+    
+    def generate_sku(self, product_name: str) -> str:
+        """Generate a normalized SKU-like slug from a product name.
+        
+        This provides a lightweight fallback SKU generation for sites where
+        an explicit SKU isn't available. It lowercases, normalizes the
+        'pokémon' character, removes non-alphanumeric characters (except
+        spaces and hyphens), collapses whitespace to single hyphens and
+        trims the result to a reasonable length.
+        """
+        import re
+        
+        if not product_name:
+            return ''
+        
+        name = product_name.lower()
+        # Normalize common unicode forms
+        name = name.replace('pokémon', 'pokemon')
+        # Remove characters that are not letters, numbers, spaces or hyphens
+        name = re.sub(r'[^a-z0-9\s-]', '', name)
+        # Collapse whitespace to single hyphen
+        name = re.sub(r'\s+', '-', name.strip())
+        # Truncate to 64 chars to keep SKU manageable
+        return name[:64]
         import re
         
         # Remove common price prefixes/suffixes and extract number
@@ -496,12 +783,17 @@ async def get_ebgames_pokemon_tcg() -> List[Dict[str, Any]]:
     scraper = UniversalSeleniumScraper(headless=True)
     return await scraper.get_store_products('ebgames_nz')
 
+async def get_pbtech_pokemon_tcg() -> List[Dict[str, Any]]:
+    """Get Pokemon TCG products from PB Tech NZ"""
+    scraper = UniversalSeleniumScraper(headless=True)
+    return await scraper.get_store_products('pbtech_nz')
+
 async def test_all_stores():
     """Test all NZ stores for Pokemon TCG products"""
     print("🧪 Testing Universal Selenium Scraper")
     print("=" * 60)
     
-    stores = ['mightyape_nz', 'kmart_nz', 'warehouse_nz', 'jbhifi_nz', 'ebgames_nz']
+    stores = ['mightyape_nz', 'kmart_nz', 'warehouse_nz', 'jbhifi_nz', 'ebgames_nz', 'pbtech_nz']
     total_products = 0
     
     for store_key in stores:
